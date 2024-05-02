@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>Usuarios</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://unpkg.com/sakura.css/css/sakura.css" type="text/css">
+</head>
+
+<body>
+    <h1>Gerenciamento de Usuarios</h1>
+
+    <table>    
+        <tr> <td>ID:</td> <td><input type="text" id="txtId"></td> </tr>
+        <tr> <td>Nome:</td> <td><input type="text" id="txtNome"></td> </tr>
+        <tr> <td>Email:</td> <td><input type="text" id="txtEmail"></td> </tr>
+        <tr> <td>Idade:</td> <td><input type="text" id="intIdade"></td> </tr>
+        <tr> <td>Biografia</td> <td><input type="text" id="txtBiografia"></td> </tr>
+        <tr><td></td><td>
+            <input type="button" value="Novo" onclick="novoUsuario()" id="btnNovo">
+            <input type="button" value="Salvar" onclick="salvarUsuario()" id="btnSalvar">
+            <input type="button" value="Apagar" onclick="apagarUsuario()" id="btnApagar">
+            <input type="button" value="Cancelar" onclick="cancelarEdicao()" id="btnCancelar">
+        </td></tr>
+    </table> 
+    
+    <p style="font-weight:bold" id="paragrafoMensagem"></p>
+    
+    <table>    
+        <tr> <th>ID</th> <th>Nome</th> <th>Email</th> <th>Idade</th> <th>Biografia</th> </tr>
+        <tbody id="corpoTabelaUsuarios"> </tbody>
+    </table>
+    
+    <script>
+        const corpoTabela = document.querySelector('#corpoTabelaUsuarios');
+        const paragrafoMensagem = document.querySelector('#paragrafoMensagem');
+        const txtNome = document.querySelector('#txtNome');
+        const txtEmail = document.querySelector('#txtEmail');
+        const intIdade = document.querySelector('#intIdade');
+        const txtBiografia = document.querySelector('#txtBiografia');
+        const txtId = document.querySelector('#txtId');
+        
+        const btnNovo = document.querySelector('#btnNovo');
+        const btnSalvar = document.querySelector('#btnSalvar');
+        const btnApagar = document.querySelector('#btnApagar');
+        const btnCancelar = document.querySelector('#btnCancelar');
+        var criandoNovoUsuario = false;
+        
+        inicializar();
+
+        function inicializar() {
+            criandoNovoUsuario = false;
+            paragrafoMensagem.innerHTML = 'Pressione o botão Novo ou selecione um usuario da lista:'
+            txtId.value = '';
+            txtNome.value = '';
+            txtEmail.value = '';
+            intIdade.value = '';
+            txtBiografia.value = '';
+
+            txtId.disabled = true;
+            txtNome.disabled = true;
+            txtEmail.disabled = true;
+            intIdade.disabled = true;
+            txtBiografia.disabled = true;
+
+            btnNovo.disabled = false;
+            btnSalvar.disabled = true;
+            btnApagar.disabled = true;
+            btnCancelar.disabled = true;
+            listarTodosUsuarios();            
+        }
+
+        async function listarTodosUsuarios() {
+            const URL = `/api/usuarios`;
+            fetch(URL)
+              .then(resposta => { if (!resposta.ok) throw Error(resposta.status); return resposta;}) 
+              .then(resposta => resposta.json())
+              .then(jsonResponse => preencherTabela(jsonResponse))
+              .catch(function(error) { paragrafoMensagem.innerHTML = "Erro ao listar usuarios (código " + error.message + ")";});
+        }
+        
+        
+        function preencherTabela(usuarios) {
+            var linhasTabela = '';
+            var n = usuarios.length;
+            for (var i = 0; i < n; i++) {
+                var f = usuarios[i];
+                linhasTabela += 
+                    `<tr><td><a href="javascript:void(0)" onclick="selecionarUsuario('${f.id}','${f.nome}','${f.email}','${f.idade}','${f.biografia}')">` 
+                    + f.id     + '</a></td>' + 
+                    '<td>' + f.nome   + '</td>' +
+                    '<td>' + f.email   + '</td>' +
+                    '<td>' + f.idade   + '</td>' +
+                    '<td>' + f.biografia + '</td></tr>\n';
+            }
+            corpoTabela.innerHTML = linhasTabela;
+        }
+
+        function selecionarUsuario(id, nome, email, idade, biografia) {
+            criandoNovoUsuario = false;
+            paragrafoMensagem.innerHTML = 'Altere e salve os dados do usuario, ou então apague o registro do usuario.'
+            txtId.value = id;
+            txtNome.value = nome;
+            txtEmail.value = email;
+            intIdade.value = idade;
+            txtBiografia.value = biografia;
+
+            txtId.disabled = true;
+            txtNome.disabled = false;
+            txtEmail.disabled = false;
+            intIdade.disabled = false;
+            txtBiografia.disabled = false;
+
+            btnNovo.disabled = true;
+            btnSalvar.disabled = false;
+            btnApagar.disabled = false;
+            btnCancelar.disabled = false;  
+        }
+
+        function novoUsuario() {
+            paragrafoMensagem.innerHTML = 'Preencha os dados do novo usuario...';
+            criandoNovoUsuario = true;
+            
+            txtId.value = '';
+            txtNome.value = '';
+            txtEmail.value = '';
+            intIdade.value = '';
+            txtBiografia.value = '';
+
+            txtId.disabled = true;
+            txtNome.disabled = false;
+            txtEmail.disabled = false;
+            intIdade.disabled = false;
+            txtBiografia.disabled = false;
+            
+            btnNovo.disabled = true;
+            btnSalvar.disabled = false;
+            btnApagar.disabled = true;
+            btnCancelar.disabled = false;
+        }
+        
+        function salvarUsuario() {
+            if (criandoNovoUsuario) {
+                criarUsuario();
+            }
+            else {
+                alterarUsuario();
+            }
+        }
+        
+        async function criarUsuario() {
+            const URL = `/api/usuarios`;
+            const dadosUsuario = {
+                'nome': txtNome.value,
+                'email': txtEmail.value,
+                'idade': intIdade.value,
+                'biografia': txtBiografia.value
+            };
+            const postRequest = {
+                method: 'POST',
+                body: JSON.stringify(dadosUsuario),
+                headers: { 'Content-type': 'application/json' }
+            };
+            fetch(URL, postRequest)
+                .then(resposta => { if (!resposta.ok) throw Error(resposta.status); return resposta; } )
+                .then(resposta => resposta.json())
+                .then(jsonResponse => inicializar())
+                .catch(function(error) { paragrafoMensagem.innerHTML = 'Erro ao criar novo usuario (código ' + error.message + ')'; } );
+        }
+        
+        async function alterarUsuario() {
+            const ID = txtId.value;
+            const URL = `/api/usuarios/${ID}`;
+            const dadosUsuario = {
+                'id': ID,
+                'nome': txtNome.value,
+                'email': txtEmail.value,
+                'idade': intIdade.value,
+                'biografia': txtBiografia.value
+            };
+            const putRequest = {
+                method: 'PUT',
+                body: JSON.stringify(dadosUsuario),
+                headers: { 'Content-type': 'application/json' }
+            };
+            fetch(URL, putRequest)
+                .then(resposta => { if (!resposta.ok) throw Error(resposta.status); return resposta; } )
+                .then(resposta => resposta.json())
+                .then(jsonResponse => inicializar())
+                .catch(function(error) { paragrafoMensagem.innerHTML = 'Erro ao alterar usuario (código ' + error.message + ')'; } );	        	
+        }
+        
+        function cancelarEdicao() {
+            inicializar();
+        }
+        
+        async function apagarUsuario() {
+            const ID = txtId.value;
+            const URL = `/api/usuarios/${ID}`;
+            const deleteRequest = {
+                method: 'DELETE'
+            };
+            fetch(URL, deleteRequest)
+                .then(resposta => { if (!resposta.ok) throw Error(resposta.status); return resposta; } )
+                .then(resposta => inicializar())
+                .catch(function(error) { paragrafoMensagem.innerHTML = 'Erro ao apagar usuario (código ' + error.message + ')'; } );	        		
+        }
+        
+    </script>    
+</body>
+
+</html>
+

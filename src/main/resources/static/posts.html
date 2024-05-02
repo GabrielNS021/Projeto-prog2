@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>Posts</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://unpkg.com/sakura.css/css/sakura.css" type="text/css">
+</head>
+
+<body>
+    <h1>Gerenciamento de Posts</h1>
+
+    <table>    
+        <tr> <td>ID:</td> <td><input type="text" id="txtId"></td> </tr>
+        <tr> <td>Conteudo:</td> <td><input type="text" id="txtConteudo"></td> </tr>
+        <tr> <td>Anexos:</td> <td><input type="text" id="txtAnexos"></td> </tr>
+        <tr> <td>Likes:</td> <td><input type="text" id="intLikes"></td> </tr>
+        <tr> <td>Views:</td> <td><input type="text" id="intViews"></td> </tr>
+        <tr><td></td><td>
+            <input type="button" value="Novo" onclick="novoPost()" id="btnNovo">
+            <input type="button" value="Salvar" onclick="salvarPost()" id="btnSalvar">
+            <input type="button" value="Apagar" onclick="apagarPost()" id="btnApagar">
+            <input type="button" value="Cancelar" onclick="cancelarEdicao()" id="btnCancelar">
+        </td></tr>
+    </table> 
+    
+    <p style="font-weight:bold" id="paragrafoMensagem"></p>
+    
+    <table>    
+        <tr> <th>ID</th> <th>Conteudo</th> <th>Anexos</th> <th>Likes</th> <th>Views</th> </tr>
+        <tbody id="corpoTabelaPosts"> </tbody>
+    </table>
+    
+    <script>
+        const corpoTabela = document.querySelector('#corpoTabelaPosts');
+        const paragrafoMensagem = document.querySelector('#paragrafoMensagem');
+        const txtConteudo= document.querySelector('#txtConteudo');
+        const txtAnexos= document.querySelector('#txtAnexos');
+        const intLikes = document.querySelector('#intLikes');
+        const intViews = document.querySelector('#intViews');
+
+        const btnNovo = document.querySelector('#btnNovo');
+        const btnSalvar = document.querySelector('#btnSalvar');
+        const btnApagar = document.querySelector('#btnApagar');
+        const btnCancelar = document.querySelector('#btnCancelar');
+        var criandoNovoPost = false;
+        
+        inicializar();
+
+        function inicializar() {
+            criandoNovoPost = false;
+            paragrafoMensagem.innerHTML = 'Pressione o botão Novo ou selecione um Post da lista:'
+            txtId.value = '';
+            txtConteudo.value = '';
+            txtAnexos.value = '';
+            intLikes.value = '';
+            intViews.value = '';
+
+            txtId.disabled = true;
+            txtConteudo.disabled = true;
+            txtAnexos.disabled = true;
+            intLikes.disabled = true;
+            intViews.disabled = true;
+
+            btnNovo.disabled = false;
+            btnSalvar.disabled = true;
+            btnApagar.disabled = true;
+            btnCancelar.disabled = true;
+            listarTodosPosts();            
+        }
+
+        async function listarTodosPosts() {
+            const URL = `/api/posts`;
+            fetch(URL)
+              .then(resposta => { if (!resposta.ok) throw Error(resposta.status); return resposta;}) 
+              .then(resposta => resposta.json())
+              .then(jsonResponse => preencherTabela(jsonResponse))
+              .catch(function(error) { paragrafoMensagem.innerHTML = "Erro ao listar posts (código " + error.message + ")";});
+        }
+        
+        
+        function preencherTabela(posts) {
+            var linhasTabela = '';
+            var n = posts.length;
+            for (var i = 0; i < n; i++) {
+                var f = posts[i];
+                linhasTabela += 
+                    `<tr><td><a href="javascript:void(0)" onclick="selecionarPost('${f.id}','${f.conteudo}','${f.anexos}','${f.likes}','${f.views}')">` 
+                    + f.id     + '</a></td>' + 
+                    '<td>' + f.conteudo   + '</td>' +
+                    '<td>' + f.anexos   + '</td>' +
+                    '<td>' + f.likes   + '</td>' +
+                    '<td>' + f.views + '</td></tr>\n';
+            }
+            corpoTabela.innerHTML = linhasTabela;
+        }
+
+        function selecionarPost(id, conteudo, anexos, likes, views) {
+            criandoNovoPost = false;
+            paragrafoMensagem.innerHTML = 'Altere e salve os dados do post, ou então apague o registro do post.'
+            txtId.value = id;
+            txtConteudo.value = conteudo;
+            txtAnexos.value = anexos;
+            intLikes.value = likes;
+            intViews.value = views;
+
+            txtId.disabled = true;
+            txtConteudo.disabled = false;
+            txtAnexos.disabled = false;
+            intLikes.disabled = false;
+            intViews.disabled = false;
+
+            btnNovo.disabled = true;
+            btnSalvar.disabled = false;
+            btnApagar.disabled = false;
+            btnCancelar.disabled = false;  
+        }
+
+        function novoPost() {
+            paragrafoMensagem.innerHTML = 'Preencha os dados do novo post...';
+            criandoNovoPost = true;
+            
+            txtId.value = '';
+            txtConteudo.value = '';
+            txtAnexos.value = '';
+            intLikes.value = '';
+            intViews.value = '';
+
+            txtId.disabled = true;
+            txtConteudo.disabled = false;
+            txtAnexos.disabled = false;
+            intLikes.disabled = false;
+            intViews.disabled = false;
+            
+            btnNovo.disabled = true;
+            btnSalvar.disabled = false;
+            btnApagar.disabled = true;
+            btnCancelar.disabled = false;
+        }
+        
+        function salvarPost() {
+            if (criandoNovoPost) {
+                criarPost();
+            }
+            else {
+                alterarPost();
+            }
+        }
+        
+        async function criarPost() {
+            const URL = `/api/posts`;
+            const dadosPost = {
+                'conteudo': txtConteudo.value,
+                'anexos': txtAnexos.value,
+                'likes': intLikes.value,
+                'views': intViews.value
+            };
+            const postRequest = {
+                method: 'POST',
+                body: JSON.stringify(dadosPost),
+                headers: { 'Content-type': 'application/json' }
+            };
+            fetch(URL, postRequest)
+                .then(resposta => { if (!resposta.ok) throw Error(resposta.status); return resposta; } )
+                .then(resposta => resposta.json())
+                .then(jsonResponse => inicializar())
+                .catch(function(error) { paragrafoMensagem.innerHTML = 'Erro ao criar novo post (código ' + error.message + ')'; } );
+        }
+        
+        async function alterarPost() {
+            const ID = txtId.value;
+            const URL = `/api/posts/${ID}`;
+            const dadosPost = {
+                'id': ID,
+                'nome': txtNome.value,
+                'email': txtEmail.value,
+                'idade': intIdade.value,
+                'biografia': txtBiografia.value
+            };
+            const putRequest = {
+                method: 'PUT',
+                body: JSON.stringify(dadosPost),
+                headers: { 'Content-type': 'application/json' }
+            };
+            fetch(URL, putRequest)
+                .then(resposta => { if (!resposta.ok) throw Error(resposta.status); return resposta; } )
+                .then(resposta => resposta.json())
+                .then(jsonResponse => inicializar())
+                .catch(function(error) { paragrafoMensagem.innerHTML = 'Erro ao alterar post (código ' + error.message + ')'; } );	        	
+        }
+        
+        function cancelarEdicao() {
+            inicializar();
+        }
+        
+        async function apagarPost() {
+            const ID = txtId.value;
+            const URL = `/api/posts/${ID}`;
+            const deleteRequest = {
+                method: 'DELETE'
+            };
+            fetch(URL, deleteRequest)
+                .then(resposta => { if (!resposta.ok) throw Error(resposta.status); return resposta; } )
+                .then(resposta => inicializar())
+                .catch(function(error) { paragrafoMensagem.innerHTML = 'Erro ao apagar post (código ' + error.message + ')'; } );	        		
+        }
+        
+    </script>    
+</body>
+
+</html>
+
