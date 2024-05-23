@@ -1,6 +1,7 @@
 package ps2.restapidb;
 
 import javax.persistence.*;
+import java.util.Set;
 
 @Entity
 @Table(name="usuarios")
@@ -12,9 +13,12 @@ public class Usuario {
     private int idade;
     private String biografia;
 		
-	public Usuario() {
-		super();
-	}
+    @OneToMany(mappedBy = "usuario", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private Set<Post> posts;
+
+    public Usuario() {
+        super();
+    }
 
     public long getId() {
         return id;

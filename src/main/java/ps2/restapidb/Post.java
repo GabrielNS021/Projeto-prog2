@@ -5,18 +5,22 @@ import javax.persistence.*;
 @Entity
 @Table(name="posts")
 public class Post {
-	@Id @GeneratedValue
-	private long id;
-	private String conteudo;
-	private String anexos;
+    @Id @GeneratedValue
+    private long id;
+    private String conteudo;
+    private String anexos;
     private int likes;
     private int views;
-    
-	public Post() {
-		super();
-	}
 
-	public long getId() {
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "usuario_id", nullable = false)
+    private Usuario usuario; 
+
+    public Post() {
+        super();
+    }
+
+    public long getId() {
         return id;
     }
     public void setId(long id) {
@@ -49,5 +53,12 @@ public class Post {
     }
     public void setViews(int views) {
         this.views = views;
+    }
+
+    public Usuario getUsuario() {
+        return usuario;
+    }
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
     }
 }

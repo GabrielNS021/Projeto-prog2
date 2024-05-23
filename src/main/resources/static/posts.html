@@ -17,6 +17,7 @@
         <tr> <td>Anexos:</td> <td><input type="text" id="txtAnexos"></td> </tr>
         <tr> <td>Likes:</td> <td><input type="text" id="intLikes"></td> </tr>
         <tr> <td>Views:</td> <td><input type="text" id="intViews"></td> </tr>
+        <tr> <td>Usuario:</td><td><select id="selectUsuario"></select>  </td>
         <tr><td></td><td>
             <input type="button" value="Novo" onclick="novoPost()" id="btnNovo">
             <input type="button" value="Salvar" onclick="salvarPost()" id="btnSalvar">
@@ -28,7 +29,7 @@
     <p style="font-weight:bold" id="paragrafoMensagem"></p>
     
     <table>    
-        <tr> <th>ID</th> <th>Conteudo</th> <th>Anexos</th> <th>Likes</th> <th>Views</th> </tr>
+        <tr> <th>ID</th> <th>Conteudo</th> <th>Anexos</th> <th>Likes</th> <th>Views</th> <th>Usuario</th> </tr>
         <tbody id="corpoTabelaPosts"> </tbody>
     </table>
     
@@ -67,7 +68,8 @@
             btnSalvar.disabled = true;
             btnApagar.disabled = true;
             btnCancelar.disabled = true;
-            listarTodosPosts();            
+            listarTodosPosts();
+            carregarUsuarios();         
         }
 
         async function listarTodosPosts() {
@@ -82,17 +84,16 @@
         
         function preencherTabela(posts) {
             var linhasTabela = '';
-            var n = posts.length;
-            for (var i = 0; i < n; i++) {
-                var f = posts[i];
-                linhasTabela += 
-                    `<tr><td><a href="javascript:void(0)" onclick="selecionarPost('${f.id}','${f.conteudo}','${f.anexos}','${f.likes}','${f.views}')">` 
-                    + f.id     + '</a></td>' + 
-                    '<td>' + f.conteudo   + '</td>' +
-                    '<td>' + f.anexos   + '</td>' +
-                    '<td>' + f.likes   + '</td>' +
-                    '<td>' + f.views + '</td></tr>\n';
-            }
+            posts.forEach(post => {
+                linhasTabela += `<tr>
+                    <td><a href="javascript:void(0)" onclick="selecionarPost('${post.id}', '${post.conteudo}', '${post.anexos}', '${post.likes}', '${post.views}', '${post.usuario.nome}')">${post.id}</a></td>
+                    <td>${post.conteudo}</td>
+                    <td>${post.anexos}</td>
+                    <td>${post.likes}</td>
+                    <td>${post.views}</td>
+                    <td>${post.usuario.nome}</td> <!-- Certifique-se que 'nome' é a propriedade correta -->
+                </tr>`;
+            });
             corpoTabela.innerHTML = linhasTabela;
         }
 
@@ -154,7 +155,8 @@
                 'conteudo': txtConteudo.value,
                 'anexos': txtAnexos.value,
                 'likes': intLikes.value,
-                'views': intViews.value
+                'views': intViews.value,
+                'usuario': { 'id': parseInt(document.querySelector('#selectUsuario').value) }
             };
             const postRequest = {
                 method: 'POST',
@@ -173,10 +175,11 @@
             const URL = `/api/posts/${ID}`;
             const dadosPost = {
                 'id': ID,
-                'nome': txtNome.value,
-                'email': txtEmail.value,
-                'idade': intIdade.value,
-                'biografia': txtBiografia.value
+                'conteudo': txtConteudo.value,
+                'anexos': txtAnexos.value,
+                'likes': parseInt(intLikes.value),
+                'views': parseInt(intViews.value),
+                'usuario': { 'id': parseInt(document.querySelector('#selectUsuario').value) }
             };
             const putRequest = {
                 method: 'PUT',
@@ -184,10 +187,12 @@
                 headers: { 'Content-type': 'application/json' }
             };
             fetch(URL, putRequest)
-                .then(resposta => { if (!resposta.ok) throw Error(resposta.status); return resposta; } )
                 .then(resposta => resposta.json())
-                .then(jsonResponse => inicializar())
-                .catch(function(error) { paragrafoMensagem.innerHTML = 'Erro ao alterar post (código ' + error.message + ')'; } );	        	
+                .then(jsonResponse => {
+                    inicializar();
+                    listarTodosPosts();
+                })
+                .catch(function(error) { paragrafoMensagem.innerHTML = 'Erro ao alterar post (código ' + error.message + ')'; });
         }
         
         function cancelarEdicao() {
@@ -205,9 +210,19 @@
                 .then(resposta => inicializar())
                 .catch(function(error) { paragrafoMensagem.innerHTML = 'Erro ao apagar post (código ' + error.message + ')'; } );	        		
         }
+
+        async function carregarUsuarios() {
+            const URL = `/api/usuarios`;
+            fetch(URL)
+                .then(resposta => resposta.json())
+                .then(jsonResponse => {
+                    const select = document.querySelector('#selectUsuario');
+                    select.innerHTML = jsonResponse.map(user => `<option value="${user.id}">${user.nome}</option>`).join('');
+                })
+                .catch(error => console.error('Erro ao carregar usuários', error));
+        }
         
     </script>    
 </body>
 
 </html>
-
